@@ -1,0 +1,36 @@
+#!/bin/bash
+
+tool=$1
+A=( $@ )
+
+if [ $# -lt 1 ]; then
+  echo "Usage: dtool <tool>"
+  exit 1
+fi
+here="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+tooldir="$here/$tool"
+
+if [ ! -d "$tooldir" ]; then
+  echo "Invalid tool name: $tool"
+  exit 2
+fi
+
+tag=jmooreoa-dtools/$tool:$(date +"%Y")-$(date +"%V")
+
+build_flags=""
+
+if [[ "$(docker images -q $tag 2> /dev/null)" == "" ]]; then
+  echo "Re-building without cache"
+  build_flags="--no-cache"
+fi
+
+docker build $build_flags -t $tag $tooldir > /dev/null
+
+user_and_group="$(id -u):$(id -g)"
+user_home=$HOME
+
+extras="${A[@]:1}"
+
+#echo "Running $tooldir/run.sh $tag $user_and_group $user_home $extras"
+
+$tooldir/run.sh $tag $user_and_group $user_home $extras
